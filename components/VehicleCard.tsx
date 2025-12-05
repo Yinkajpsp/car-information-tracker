@@ -19,9 +19,29 @@ export default function VehicleCard({ mot, error, onDownloadIcs }: VehicleCardPr
     if (!mot) return null;
 
     const expiryDate = new Date(mot.motExpiryDate);
-    const isExpired = expiryDate < new Date();
-    const statusColor = isExpired ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-600 bg-green-50 border-green-200';
-    const statusText = isExpired ? 'EXPIRED' : 'VALID';
+    const now = new Date();
+
+    // Calculate difference in days
+    const diffTime = expiryDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    let statusColor = '';
+    let statusText = '';
+    let dateColor = '';
+
+    if (diffDays < 0) {
+        statusColor = 'text-red-700 bg-red-100 border-red-200';
+        statusText = 'EXPIRED';
+        dateColor = 'text-red-700 font-bold';
+    } else if (diffDays <= 30) {
+        statusColor = 'text-amber-700 bg-amber-100 border-amber-200';
+        statusText = 'EXPIRING SOON';
+        dateColor = 'text-amber-700 font-bold';
+    } else {
+        statusColor = 'text-green-700 bg-green-100 border-green-200';
+        statusText = 'VALID';
+        dateColor = 'text-green-700 font-bold';
+    }
 
     // Format dates for display
     const formatDate = (dateStr: string) => {
@@ -54,7 +74,7 @@ export default function VehicleCard({ mot, error, onDownloadIcs }: VehicleCardPr
                     </div>
                     <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wide">Expiry Date</p>
-                        <p className={`font-medium ${isExpired ? 'text-red-600' : 'text-green-600'}`}>
+                        <p className={`font-medium ${dateColor}`}>
                             {formatDate(mot.motExpiryDate)}
                         </p>
                     </div>
@@ -71,7 +91,7 @@ export default function VehicleCard({ mot, error, onDownloadIcs }: VehicleCardPr
                     </div>
                 )}
 
-                {onDownloadIcs && !isExpired && (
+                {onDownloadIcs && diffDays >= 0 && (
                     <button
                         onClick={onDownloadIcs}
                         className="w-full mt-4 flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"

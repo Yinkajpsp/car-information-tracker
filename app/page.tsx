@@ -21,12 +21,20 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch MOT data');
+        if (response.status === 404) {
+          throw new Error('No MOT record found for that registration');
+        } else if (response.status === 500) {
+          throw new Error('Unable to reach the MOT service, please try again later');
+        } else if (response.status === 429) {
+          throw new Error('Too many requests. Please try again in a moment.');
+        } else {
+          throw new Error(data.error || 'An unexpected error occurred. Please try again.');
+        }
       }
 
       setMot(data);
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }

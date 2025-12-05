@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
 
     if (normalizedReg === 'ERROR') {
         return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
+    } else if (normalizedReg === 'SERVER_ERROR') {
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     } else if (normalizedReg === 'EXPIRED') {
         mockData = {
             registration: reg.toUpperCase(),
@@ -28,6 +30,17 @@ export async function GET(request: NextRequest) {
             motExpiryDate: '2023-01-01', // Expired
             lastTestDate: '2022-01-01',
             advisories: ['Tyre worn close to legal limit/from previous year', 'Brake pad warning light on']
+        };
+    } else if (normalizedReg === 'SOON') {
+        const soonDate = new Date();
+        soonDate.setDate(soonDate.getDate() + 15);
+        mockData = {
+            registration: reg.toUpperCase(),
+            make: 'VAUXHALL',
+            model: 'CORSA',
+            motExpiryDate: soonDate.toISOString().split('T')[0], // Expiring soon
+            lastTestDate: new Date().toISOString().split('T')[0],
+            advisories: []
         };
     } else {
         // Default happy path
