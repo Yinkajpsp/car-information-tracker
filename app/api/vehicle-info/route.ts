@@ -21,6 +21,80 @@ export async function GET(request: NextRequest) {
     // Normalise VRM
     const reg = regRaw.toUpperCase().replace(/\s+/g, '');
 
+    // -------------------------------
+    // MOCK SHORT-CIRCUITS (optional)
+    // -------------------------------
+    if (reg === 'EXPIRED') {
+        const vehicle: VehicleExtraInfo = {
+            makeLogoUrl: null,
+            make: 'FORD',
+            model: 'FOCUS',
+            yearOfManufacture: 2015,
+            bodyType: 'HATCHBACK',
+            fuelType: 'PETROL',
+            colour: 'BLUE',
+            engineCapacity: 1596,
+            co2Emissions: 140,
+            taxStatus: 'Expired',
+            taxDueDate: '2023-01-01',
+            registrationPlace: 'Leeds',
+            mpg: 40,
+            estimatedValue: 3500,
+        };
+
+        const mot: MotResult = {
+            registration: reg,
+            make: 'FORD',
+            model: 'FOCUS',
+            motStatus: 'Expired',
+            motExpiryDate: '2023-01-01',
+            motTestNumber: '999999999999',
+            odometerValue: '120000',
+            advisories: [
+                'Tyre worn close to legal limit/from previous year',
+                'Brake pad warning light on',
+            ],
+            firstUsedDate: '2015-06-01',
+            lastTestDate: '1 January 2022',
+            lastTestResult: 'FAILED',
+            lastTestMileage: '120000',
+            lastTestMileageUnit: 'miles',
+            lastTestDefects: [],
+            testStationName: 'Demo MOT Station',
+            testLocation: 'Demo City',
+            nextMotDueDate: '2023-01-01',
+            emissions: {
+                co2: '140',
+                hydrocarbons: 'Unknown',
+                lambda: 'Unknown',
+                monoxide: 'Unknown',
+            },
+            faults: {
+                dangerous: [],
+                major: ['Brake pad warning light on'],
+                minor: [],
+                advisories: ['Tyre worn close to legal limit/from previous year'],
+            },
+            motHistorySummary: { totalTests: 1, passedTests: 0, failedTests: 1 },
+            motHistory: [
+                {
+                    motTestNumber: '999999999999',
+                    completedDate: '1 January 2022',
+                    expiryDate: '1 January 2023',
+                    odometerValue: '120000',
+                    odometerUnit: 'miles',
+                    testResult: 'FAILED',
+                    defects: ['Tyre worn close to legal limit/from previous year', 'Brake pad warning light on']
+                }
+            ]
+        };
+
+        return NextResponse.json({ vehicle, mot });
+    }
+
+    // you could add more demo regs the same way:
+    // if (reg === 'SOON') { ...return NextResponse.json({ vehicle, mot }); }
+
     const apiKey = process.env.CHECKCARDETAILS_API_KEY;
     if (!apiKey) {
         console.error('CHECKCARDETAILS_API_KEY is missing');
@@ -61,10 +135,7 @@ export async function GET(request: NextRequest) {
         const vehicleData = await vehicleRes.json();
         const motData = await motRes.json();
 
-        // ------------------------
-        // VEHICLE DATA PROCESSING
-        // ------------------------
-
+        // VEHICLE DATA PROCESSING (unchanged)
         const make =
             vehicleData.make ??
             vehicleData.Make ??
@@ -130,7 +201,6 @@ export async function GET(request: NextRequest) {
                     .replace(/\s/g, '')}.com`
                 : null;
 
-        // Very rough MPG estimate from CO₂
         let mpg: number | null = null;
         if (
             co2 &&
@@ -140,7 +210,6 @@ export async function GET(request: NextRequest) {
             mpg = Math.round(6760 / co2);
         }
 
-        // Rough estimated value based on age
         const currentYear = new Date().getFullYear();
         const year = yearOfManufacture ?? currentYear - 5;
         const age = currentYear - year;
@@ -167,10 +236,7 @@ export async function GET(request: NextRequest) {
             estimatedValue: Math.round(estimatedValue),
         };
 
-        // --------------------
-        // MOT DATA PROCESSING
-        // --------------------
-
+        // MOT DATA PROCESSING (unchanged)
         const historyRaw =
             Array.isArray(motData.motHistory)
                 ? motData.motHistory
@@ -192,11 +258,6 @@ export async function GET(request: NextRequest) {
             motData.MotMobilityExpiryDate ??
             'Unknown';
 
-        const odometerValue =
-            latestTest?.odometerValue ??
-            latestTest?.OdometerValue ??
-            'Unknown';
-
         const advisories =
             latestTest?.defects
                 ? (latestTest.defects as any[]).map(
@@ -208,7 +269,7 @@ export async function GET(request: NextRequest) {
                     )
                     : [];
 
-        const lastTestDate =
+        const lastTestDateRaw =
             latestTest?.testDate ??
             latestTest?.TestDate ??
             latestTest?.completedDate ??
@@ -245,12 +306,11 @@ export async function GET(request: NextRequest) {
                     }))
                     : [];
 
-        // Categorize faults
         const faults = {
             dangerous: [] as string[],
             major: [] as string[],
             minor: [] as string[],
-            advisories: [] as string[]
+            advisories: [] as string[],
         };
 
         if (latestTest?.defects) {
@@ -263,16 +323,18 @@ export async function GET(request: NextRequest) {
                 else faults.advisories.push(text);
             });
         } else if (latestTest?.Notices) {
-            // Fallback for Notices - usually advisories
             (latestTest.Notices as any[]).forEach((n) => {
                 faults.advisories.push(n.text || n.Notice || n);
             });
         }
 
-        // Expanded Fields Parsing with explicit 'Unknown' fallback
-        const testStationName = latestTest?.motTestStation ?? latestTest?.MotTestStation ?? 'Unknown';
-        const testLocation = 'Unknown'; // Placeholder as requested (API often doesn't give full address)
-        const nextMotDueDate = motExpiryDate; // Usually same as main expiry if it's the latest
+        const testStationName =
+            latestTest?.motTestStation ??
+            latestTest?.MotTestStation ??
+            'Unknown';
+
+        const testLocation = 'Unknown';
+        const nextMotDueDate = motExpiryDate;
 
         const emissions = {
             co2: latestTest?.co2 ?? latestTest?.Co2 ?? 'Unknown',
@@ -280,6 +342,27 @@ export async function GET(request: NextRequest) {
             lambda: latestTest?.lambda ?? latestTest?.Lambda ?? 'Unknown',
             monoxide: latestTest?.monoxide ?? latestTest?.Monoxide ?? 'Unknown',
         };
+
+        // Process History
+        const motHistory = historyRaw.map((item: any) => ({
+            motTestNumber: item.motTestNumber ?? item.MotTestNumber ?? 'Unknown',
+            completedDate: formatDate(item.testDate ?? item.TestDate ?? item.completedDate ?? item.CompletedDate ?? 'Unknown'),
+            expiryDate: formatDate(item.expiryDate ?? item.ExpiryDate ?? 'Unknown'),
+            odometerValue: item.odometerValue ?? item.OdometerValue ?? 'Unknown',
+            odometerUnit: item.odometerUnit ?? item.OdometerUnit ?? 'miles',
+            testResult: item.testResult ?? item.TestResult ?? 'Unknown',
+            defects: item.defects
+                ? (item.defects as any[]).map((d: any) => d.text || d.description || d)
+                : item.Notices
+                    ? (item.Notices as any[]).map((n: any) => n.text || n.Notice || n)
+                    : []
+        }));
+
+        const totalTests = motHistory.length;
+        const passedTests = motHistory.filter((h: any) => h.testResult === 'PASSED').length;
+        const failedTests = motHistory.filter((h: any) => h.testResult !== 'PASSED').length;
+
+        const motHistorySummary = { totalTests, passedTests, failedTests };
 
         const mot: MotResult = {
             registration: reg,
@@ -291,27 +374,23 @@ export async function GET(request: NextRequest) {
                 latestTest?.motTestNumber ??
                 latestTest?.MotTestNumber ??
                 'N/A',
-            odometerValue:
-                latestTest?.odometerValue ??
-                latestTest?.OdometerValue ??
-                latestTest?.odometerReading ??
-                latestTest?.OdometerReading ??
-                'Unknown',
+            odometerValue: lastTestMileage,
             advisories,
             firstUsedDate: yearOfManufacture
                 ? `${yearOfManufacture}-01-01`
                 : 'Unknown',
-            lastTestDate: formatDate(lastTestDate),
+            lastTestDate: formatDate(lastTestDateRaw),
             lastTestResult,
             lastTestMileage,
             lastTestMileageUnit,
             lastTestDefects,
-            // New Expanded Fields
             testStationName,
             testLocation,
             nextMotDueDate,
             emissions,
-            faults
+            faults,
+            motHistory,
+            motHistorySummary,
         };
 
         return NextResponse.json({ vehicle, mot });
@@ -334,7 +413,7 @@ function formatDate(dateStr: string): string {
             month: 'long',
             year: 'numeric',
         });
-    } catch (e) {
+    } catch {
         return dateStr;
     }
 }

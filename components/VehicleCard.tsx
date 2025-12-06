@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { MotResult } from '@/lib/types';
 
 interface VehicleCardProps {
@@ -7,6 +10,8 @@ interface VehicleCardProps {
 }
 
 export default function VehicleCard({ mot, error, onDownloadIcs }: VehicleCardProps) {
+    const [expandedYear, setExpandedYear] = useState<string | null>(null);
+
     if (error) {
         return (
             <div className="w-full max-w-md mx-auto mt-8 bg-red-50 border border-red-200 rounded-lg p-6 text-center animate-fade-in">
@@ -64,6 +69,24 @@ export default function VehicleCard({ mot, error, onDownloadIcs }: VehicleCardPr
                     {status === 'EXPIRED' && 'Expired'}
                 </div>
             </div>
+
+            {/* History Summary Badges */}
+            {mot.motHistorySummary && (
+                <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/30">
+                    <div className="p-3 text-center">
+                        <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Total</p>
+                        <p className="text-lg font-black text-gray-900">{mot.motHistorySummary.totalTests}</p>
+                    </div>
+                    <div className="p-3 text-center">
+                        <p className="text-xs text-green-600 uppercase tracking-wider font-bold">Passed</p>
+                        <p className="text-lg font-black text-green-700">{mot.motHistorySummary.passedTests}</p>
+                    </div>
+                    <div className="p-3 text-center">
+                        <p className="text-xs text-red-600 uppercase tracking-wider font-bold">Failed</p>
+                        <p className="text-lg font-black text-red-700">{mot.motHistorySummary.failedTests}</p>
+                    </div>
+                </div>
+            )}
 
             <div className="p-6">
                 <div className="space-y-6">
@@ -270,6 +293,87 @@ export default function VehicleCard({ mot, error, onDownloadIcs }: VehicleCardPr
                     </button>
                 )}
             </div>
-        </div>
+
+
+            {/* Collapsible History */}
+            {
+                mot.motHistory && mot.motHistory.length > 0 && (
+                    <div className="border-t border-gray-100">
+                        <div className="p-4 bg-gray-50 border-b border-gray-200">
+                            <h4 className="text-sm font-bold text-gray-900">Full MOT History</h4>
+                        </div>
+                        <div>
+                            {Object.entries(
+                                mot.motHistory.reduce((acc, item) => {
+                                    const date = new Date(item.completedDate);
+                                    const year = isNaN(date.getTime()) ? 'Unknown' : date.getFullYear().toString();
+                                    if (!acc[year]) acc[year] = [];
+                                    acc[year].push(item);
+                                    return acc;
+                                }, {} as Record<string, typeof mot.motHistory>)
+                            )
+                                .sort(([yearA], [yearB]) => yearB.localeCompare(yearA))
+                                .map(([year, items]) => (
+                                    <div key={year} className="border-b border-gray-100 last:border-0">
+                                        <button
+                                            onClick={() => setExpandedYear(expandedYear === year ? null : year)}
+                                            className="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition-colors text-left"
+                                        >
+                                            <span className="font-bold text-gray-700">{year}</span>
+                                            <div className="flex items-center space-x-3">
+                                                <span className="text-xs text-gray-400 font-medium">{items.length} tests</span>
+                                                <svg
+                                                    className={`w-4 h-4 text-gray-400 transition-transform ${expandedYear === year ? 'rotate-180' : ''}`}
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </button>
+
+                                        {expandedYear === year && (
+                                            <div className="bg-gray-50/50 px-4 pb-4 space-y-4">
+                                                {items.map((test, idx) => (
+                                                    <div key={idx} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm text-sm">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div>
+                                                                <div className={`
+                                                                inline-block px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide mb-1
+                                                                ${test.testResult === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
+                                                            `}>
+                                                                    {test.testResult}
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 mt-1">{test.completedDate}</p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-bold text-gray-900">{test.odometerValue} {test.odometerUnit}</p>
+                                                                <p className="text-xs text-gray-400 font-mono mt-1">Ref: {test.motTestNumber}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {test.defects && test.defects.length > 0 && (
+                                                            <div className="mt-2 pt-2 border-t border-gray-100">
+                                                                <p className="text-xs font-bold text-gray-700 mb-1">Defects & Notices:</p>
+                                                                <ul className="space-y-1">
+                                                                    {test.defects.map((defect, dIdx) => (
+                                                                        <li key={dIdx} className="text-xs text-gray-600 flex items-start">
+                                                                            <span className="mr-2">•</span>
+                                                                            <span>{defect}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 }

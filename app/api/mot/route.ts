@@ -23,12 +23,14 @@ export async function GET(request: NextRequest) {
     } else if (normalizedReg === 'SERVER_ERROR') {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     } else if (normalizedReg === 'EXPIRED') {
-    } else if (normalizedReg === 'EXPIRED') {
         mockData = {
             registration: reg.toUpperCase(),
             make: 'FORD',
             model: 'FOCUS',
             motExpiryDate: '2023-01-01', // Expired
+            motStatus: 'Expired',
+            motTestNumber: '999999999999',
+            odometerValue: '120000',
             lastTestDate: '2022-01-01',
             firstUsedDate: '2015-06-01',
             mileage: 120000,
@@ -42,6 +44,9 @@ export async function GET(request: NextRequest) {
             make: 'VAUXHALL',
             model: 'CORSA',
             motExpiryDate: soonDate.toISOString().split('T')[0], // Expiring soon
+            motStatus: 'Valid',
+            motTestNumber: '888888888888',
+            odometerValue: '50000',
             lastTestDate: new Date().toISOString().split('T')[0],
             firstUsedDate: '2018-09-01',
             mileage: 50000,
@@ -57,6 +62,9 @@ export async function GET(request: NextRequest) {
             make: 'TESLA',
             model: 'MODEL 3',
             motExpiryDate: futureDate.toISOString().split('T')[0],
+            motStatus: 'Valid',
+            motTestNumber: '777777777777',
+            odometerValue: '72500',
             lastTestDate: new Date().toISOString().split('T')[0],
             firstUsedDate: '2019-03-01',
             mileage: 72500,
