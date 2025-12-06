@@ -38,20 +38,3 @@ export interface MotResult {
 
     lastTestDefects?: { type: string; text: string }[];
 }
-
-export interface VehicleExtraInfo {
-    makeLogoUrl: string | null;
-    make: string;
-    model: string;
-    yearOfManufacture: number | null;
-    bodyType: string | null;
-    fuelType: string | null;
-    colour: string | null;
-    engineCapacity: number | null;
-    co2Emissions: number | null;
-    taxStatus: string | null;
-    taxDueDate: string | null;
-    registrationPlace: string | null;
-    mpg: number | null;
-    estimatedValue: number | null;
-}
