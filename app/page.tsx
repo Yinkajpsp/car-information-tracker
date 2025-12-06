@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import SearchForm from '@/components/SearchForm';
 import VehicleCard from '@/components/VehicleCard';
-import { MotResult } from '@/lib/types';
+import VehicleDetailsCard from '@/components/VehicleDetailsCard';
+import { MotResult, VehicleExtraInfo } from '@/lib/types';
 import { generateMotReminderIcs } from '@/lib/ics';
 
 export default function Home() {
   const [mot, setMot] = useState<MotResult | null>(null);
+  const [vehicleInfo, setVehicleInfo] = useState<VehicleExtraInfo | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -43,25 +45,27 @@ export default function Home() {
     setIsLoading(true);
     setError(undefined);
     setMot(null);
+    setVehicleInfo(null);
 
     try {
-      const response = await fetch(`/api/mot?reg=${encodeURIComponent(reg)}`);
+      const response = await fetch(`/api/vehicle-info?reg=${encodeURIComponent(reg)}`);
       const data = await response.json();
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error('No MOT record found for that registration');
+          throw new Error('No vehicle record found for that registration');
         } else if (response.status === 500) {
-          throw new Error('Unable to reach the MOT service, please try again later');
-        } else if (response.status === 429) {
-          throw new Error('Too many requests. Please try again in a moment.');
+          throw new Error('Unable to reach the service, please try again later');
         } else {
           throw new Error(data.error || 'An unexpected error occurred. Please try again.');
         }
       }
 
-      setMot(data);
+      setMot(data.mot);
+      setVehicleInfo(data.vehicle);
       addToHistory(reg);
+
+
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
@@ -85,7 +89,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
             Car MOT Tracker
@@ -115,11 +119,22 @@ export default function Home() {
           </div>
         )}
 
-        <VehicleCard
-          mot={mot}
-          error={error}
-          onDownloadIcs={mot ? handleDownloadIcs : undefined}
-        />
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div className={!vehicleInfo ? "md:col-span-2 md:max-w-md md:mx-auto w-full" : "w-full"}>
+            <VehicleCard
+              mot={mot}
+              error={error}
+              onDownloadIcs={mot ? handleDownloadIcs : undefined}
+            />
+          </div>
+
+          {vehicleInfo && !error && (
+            <div className="w-full mt-8 md:mt-0">
+              <VehicleDetailsCard info={vehicleInfo} />
+            </div>
+          )}
+        </div>
+
       </div>
     </main>
   );
