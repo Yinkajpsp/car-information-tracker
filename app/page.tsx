@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SearchForm from '@/components/SearchForm';
 import VehicleCard from '@/components/VehicleCard';
 import { MotResult } from '@/lib/types';
@@ -10,6 +10,34 @@ export default function Home() {
   const [mot, setMot] = useState<MotResult | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [recentRegs, setRecentRegs] = useState<string[]>([]);
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recentRegs');
+      if (saved) {
+        try {
+          setRecentRegs(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to parse recent searches', e);
+        }
+      }
+    }
+  }, []);
+
+  const addToHistory = (reg: string) => {
+    const normalizedReg = reg.trim().toUpperCase();
+    setRecentRegs(prev => {
+      // Remove existing occurrence if any, then add to front
+      const filtered = prev.filter(r => r !== normalizedReg);
+      const updated = [normalizedReg, ...filtered].slice(0, 5);
+
+      localStorage.setItem('recentRegs', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleSearch = async (reg: string) => {
     setIsLoading(true);
@@ -33,6 +61,7 @@ export default function Home() {
       }
 
       setMot(data);
+      addToHistory(reg);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
@@ -67,6 +96,24 @@ export default function Home() {
         </div>
 
         <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+
+        {recentRegs.length > 0 && (
+          <div className="mt-6 mb-8">
+            <p className="text-sm text-gray-500 mb-2 text-center">Recent searches:</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {recentRegs.map(reg => (
+                <button
+                  key={reg}
+                  onClick={() => handleSearch(reg)}
+                  disabled={isLoading}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                  {reg}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <VehicleCard
           mot={mot}
