@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
             model: 'FOCUS',
             motExpiryDate: '2023-01-01', // Expired
             lastTestDate: '2022-01-01',
+            mileage: 120000,
             advisories: ['Tyre worn close to legal limit/from previous year', 'Brake pad warning light on']
         };
     } else if (normalizedReg === 'SOON') {
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
             model: 'CORSA',
             motExpiryDate: soonDate.toISOString().split('T')[0], // Expiring soon
             lastTestDate: new Date().toISOString().split('T')[0],
+            mileage: 50000,
             advisories: []
         };
     } else {
@@ -53,6 +55,7 @@ export async function GET(request: NextRequest) {
             model: 'MODEL 3',
             motExpiryDate: futureDate.toISOString().split('T')[0],
             lastTestDate: new Date().toISOString().split('T')[0],
+            mileage: 72500,
             advisories: []
         };
     }

@@ -78,6 +78,12 @@ export default function VehicleCard({ mot, error, onDownloadIcs }: VehicleCardPr
                             {formatDate(mot.motExpiryDate)}
                         </p>
                     </div>
+                    <div className="col-span-2">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Mileage</p>
+                        <p className="font-medium text-gray-900">
+                            {mot.mileage ? `${mot.mileage.toLocaleString()} miles` : 'Mileage unavailable'}
+                        </p>
+                    </div>
                 </div>
 
                 {mot.advisories.length > 0 && (
